@@ -3,7 +3,6 @@ local sound = require 'vendor/TEsound'
 local Timer = require 'vendor/timer'
 local Projectile = require 'nodes/projectile'
 local Sprite = require 'nodes/sprite'
-local sound = require 'vendor/TEsound'
 local utils = require 'utils'
 local game = require 'game'
 local collision  = require 'hawk/collision'
@@ -75,9 +74,14 @@ return {
   },
 
   enter = function( enemy )
+    sound.playMusic("benzalk-battle")
     if enemy.db:get("bosstriggers.benzalk", false) then
-      enemy:die()
+      local level = enemy.containerLevel
+      enemy:die(true)
+      -- Required because of bug where all music stops
+      sound.playMusic(level.music)
     end
+
     enemy.direction = 'left'
     enemy.state = 'default'
     enemy.jump_speed = {x = -150,
@@ -99,12 +103,11 @@ return {
   die = function( enemy )
     enemy.velocity.y = enemy.speed
     enemy.db:set("bosstriggers.benzalk", true)
+    sound.stopMusic()
   end,
 
   draw = function( enemy )
     fonts.set( 'small' )
-
-    love.graphics.setStencil( )
 
     local energy = love.graphics.newImage('images/enemies/bossHud/energy.png')
     local bossChevron = love.graphics.newImage('images/enemies/bossHud/bossChevron.png')
@@ -127,7 +130,6 @@ return {
     energy_stencil = function( x, y )
       love.graphics.rectangle( 'fill', x + 11, y + 27, 59, 9 )
     end
-    love.graphics.setStencil(energy_stencil, x, y)
     local max_hp = 100
     local rate = 55/max_hp
     love.graphics.setColor(
@@ -136,9 +138,10 @@ return {
       0,
       255
     )
-    love.graphics.draw(energy, x + ( max_hp - enemy.hp ) * rate, y)
+    local energy_quad = love.graphics.newQuad( -(max_hp - enemy.hp) * rate, 0, 70, 60, energy:getWidth(), energy:getHeight())
 
-    love.graphics.setStencil( )
+    love.graphics.draw(energy, energy_quad, x , y)
+    
     love.graphics.setColor( 255, 255, 255, 255 )
     fonts.revert()
   end,
@@ -328,3 +331,4 @@ return {
     end
   end
 }
+
